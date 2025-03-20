@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Portaria</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f2f2f2;
+            color: #333;
+        }
+
+        .container {
+            width: 90%;
+            margin: 30px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            color: #4CAF50;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-top: 12px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0 16px 0;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="file"]:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #videoInput {
+            display: none; 
+            width: 100%;
+            height: auto;
+            margin-top: 20px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #fotoCapturada {
+            width: 200px;
+            height: auto;
+            margin-top: 20px;
+            display: none;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+
+        #dicas {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 16px;
+            color: #777;
+        }
+
+        #dicas span {
+            color: #FF0000;
+        }
+
+        #tempoEstadia {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4CAF50;
+            text-align: center;
+        }
+
+        #registrarSaidaBtn {
+            background-color: #f44336;
+            margin-top: 20px;
+            display: none;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Controle de Portaria</h1>
+
+        <!-- Seção CPF -->
+        <div class="form-section">
+            <h2>Validação de CPF</h2>
+            <label for="cpf">Digite o CPF:</label>
+            <input type="text" id="cpf" placeholder="XXX.XXX.XXX-XX">
+            <button onclick="validarCPF()">Validar CPF</button>
+            <p id="cpfResultado"></p>
+        </div>
+
+        <!-- Seção Reconhecimento Facial -->
+        <div class="form-section">
+            <h2>Reconhecimento Facial</h2>
+            <video id="videoInput" autoplay></video>
+            <button onclick="startFaceRecognition()">Iniciar Reconhecimento</button>
+            <p id="faceResultado"></p>
+            <div id="dicas"></div>
+        </div>
+
+        <!-- Seção Impressão Digital -->
+        <div class="form-section">
+            <h2>Autenticação Biométrica</h2>
+            <label for="biometriaImg">Carregar Impressão Digital:</label>
+            <input type="file" id="biometriaImg" accept="image/*">
+            <button onclick="autenticarBiometria()">Autenticar Biometria</button>
+            <p id="biometriaResultado"></p>
+        </div>
+
+        <!-- Seção Placa de Veículo -->
+        <div class="form-section">
+            <h2>Reconhecimento de Placa de Veículo</h2>
+            <label for="placaImg">Carregar Foto da Placa:</label>
+            <input type="file" id="placaImg" accept="image/*">
+            <button onclick="reconhecerPlaca()">Reconhecer Placa</button>
+            <p id="placaResultado"></p>
+        </div>
+
+        <!-- Seção Controle de Entrada e Saída -->
+        <div class="form-section">
+            <h2>Controle de Tempo de Estadia</h2>
+            <label for="nomeVisitante">Nome do Visitante:</label>
+            <input type="text" id="nomeVisitante" placeholder="Digite o nome do visitante">
+            <label for="cpfVisitante">CPF do Visitante:</label>
+            <input type="text" id="cpfVisitante" placeholder="XXX.XXX.XXX-XX">
+            <button onclick="registrarEntrada()">Registrar Entrada</button>
+            <button id="registrarSaidaBtn" onclick="registrarSaida()">Registrar Saída</button>
+            <p id="tempoEstadia"></p>
+        </div>
+    </div>
+
+    <script>
+        let visitante = null;
+
+        // Função para validar CPF
+        function validarCPF() {
+            const cpf = document.getElementById('cpf').value;
+            const resultado = document.getElementById('cpfResultado');
+            const regex = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/;
+
+            if (regex.test(cpf)) {
+                resultado.innerText = 'CPF válido!';
+                resultado.style.color = 'green';
+            } else {
+                resultado.innerText = 'CPF inválido!';
+                resultado.style.color = 'red';
+            }
+        }
+
+        // Função de Reconhecimento Facial
+        async function startFaceRecognition() {
+            const video = document.getElementById('videoInput');
+            video.style.display = 'block'; // Exibe a câmera ao clicar no botão
+
+            // Acessa a câmera
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+                video.srcObject = stream;
+
+                video.onloadedmetadata = () => {
+                    video.play();
+                };
+
+                // Após 5 segundos, faz a captura da foto automaticamente
+                setTimeout(async () => {
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+
+                    // Captura a imagem da câmera
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const fotoCapturada = canvas.toDataURL();
+
+                    // Exibe a imagem capturada
+                    const fotoElement = document.createElement('img');
+                    fotoElement.src = fotoCapturada;
+                    fotoElement.style.width = '200px';
+                    fotoElement.style.display = 'block';
+                    fotoElement.style.marginTop = '10px';
+                    document.body.appendChild(fotoElement);
+
+                    // Processa o reconhecimento facial
+                    await reconhecerFace(fotoCapturada);
+
+                    // Exibe o resultado
+                    const resultado = document.getElementById('faceResultado');
+                    resultado.innerText = 'Rosto reconhecido com sucesso!';
+                    resultado.style.color = 'green';
+
+                }, 5000); // Captura após 5 segundos
+            }
+        }
+
+        // Função para reconhecer o rosto da imagem
+        async function reconhecerFace(fotoCapturada) {
+            const img = new Image();
+            img.src = fotoCapturada;
+
+            img.onload = async () => {
+                const detections = await faceapi.detectAllFaces(img)
+                    .withFaceLandmarks()
+                    .withFaceDescriptors();
+
+                if (detections.length > 0) {
+                    console.log('Rosto reconhecido!');
+                } else {
+                    console.log('Nenhum rosto detectado.');
+                }
+            };
+        }
+
+        // Função para registrar a entrada do visitante
+        function registrarEntrada() {
+            const nomeVisitante = document.getElementById('nomeVisitante').value;
+            const cpfVisitante = document.getElementById('cpfVisitante').value;
+            const tempoEstadia = document.getElementById('tempoEstadia');
+
+            if (nomeVisitante && cpfVisitante) {
+                visitante = {
+                    nome: nomeVisitante,
+                    cpf: cpfVisitante,
+                    entrada: new Date()
+                };
+
+                // Exibe a mensagem de entrada registrada
+                tempoEstadia.innerText = `Entrada registrada para ${nomeVisitante}. Aguarde...`;
+                tempoEstadia.style.color = 'green';
+
+                // Exibe o botão para registrar a saída
+                document.getElementById('registrarSaidaBtn').style.display = 'inline-block';
+            } else {
+                tempoEstadia.innerText = 'Por favor, preencha todos os campos.';
+                tempoEstadia.style.color = 'red';
+            }
+        }
+
+        // Função para registrar a saída e calcular o tempo de estadia
+        function registrarSaida() {
+            const tempoEstadia = document.getElementById('tempoEstadia');
+            const saida = new Date();
+            const tempo = Math.floor((saida - visitante.entrada) / 1000); // Tempo em segundos
+
+            // Exibe o tempo de estadia
+            tempoEstadia.innerText = `${visitante.nome} ficou ${tempo} segundos no local.`;
+
+            // Esconde o botão de saída após registrar a saída
+            document.getElementById('registrarSaidaBtn').style.display = 'none';
+        }
+    </script>
+
+</body>
+</html>
